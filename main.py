@@ -1,123 +1,87 @@
-import ibapi
 import time
 import math
-
-from ibapi.client import EClient
-from ibapi.wrapper import EWrapper  
-from ibapi.contract import Contract
-from ibapi.order import *
-
 import threading
 
-class IBapi(EWrapper, EClient):
-    
-    def __init__(self):
-        EClient.__init__(self, self) 
-        self.current_bid_price = None
-        self.current_ask_price = None
-    def tickPrice(self, reqId, tickType, price, attrib):
-        if tickType == 2 and reqId == 1:
-            self.current_ask_price = price
-            # print('The current ask price is: ', price)
-        if tickType == 1 and reqId == 1:
-            self.current_bid_price = price
-            # print('The current bid price is: ', price)
-    
-    def nextValidId(self, orderId: int):
-        super().nextValidId(orderId)
-        self.nextorderId = orderId
-        print('The next valid order id is: ', self.nextorderId)
-        
-    def orderStatus(self, orderId, status, filled, remaining, avgFullPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice):
-        print('orderStatus - orderid:', orderId, 'status:', status, 'filled', filled, 'remaining', remaining, 'lastFillPrice', lastFillPrice)
-	
-    def openOrder(self, orderId, contract, order, orderState):
-        print('openOrder id:', orderId, contract.symbol, contract.secType, '@', contract.exchange, ':', order.action, order.orderType, order.totalQuantity, orderState.status)
-        
-    def execDetails(self, reqId, contract, execution):
-        print('Order Executed: ', reqId, contract.symbol, contract.secType, contract.currency, execution.execId, execution.orderId, execution.shares, execution.lastLiquidity)
+from IBapi import IBapi
+from order_service import *
 
-def FX_order(symbol):
-    contract = Contract()
-    contract.symbol = symbol[:3]
-    contract.secType = 'CASH'
-    contract.exchange = 'IDEALPRO'
-    contract.currency = symbol[3:]
-    return contract
+def calculate_current_buy_price(app):
+    price_to_buy = float(app.current_bid_price) * 1000000 / 10
+    last_digit = price_to_buy % 10
+    if last_digit >= 5:
+        price_to_buy = math.ceil(price_to_buy / 10) * 10 
+    else:
+        price_to_buy = math.floor(price_to_buy / 10) * 10 + 5
+    price_to_buy = price_to_buy / 100000
 
-def set_order(typeAction, quantity, orderType, lmtPrice, finInstr):
-    print(f'Setting order action:{typeAction}, quantity:{quantity}, price:{lmtPrice}')
-    order = Order()
-    order.action = typeAction
-    order.totalQuantity = quantity
-    order.orderType = orderType
-    order.lmtPrice = lmtPrice
-    order.orderId = app.nextorderId
-    app.nextorderId += 1
-    order.transmit = True
-    
-    app.placeOrder(order.orderId, finInstr, order)
+    return price_to_buy
 
-def set_bracket_order(typeAction, quantity, orderType, lmtPrice, deltaProfit, finInstr):
-    print(f'Setting order action:{typeAction}, quantity:{quantity}, price:{lmtPrice}')
-    order = Order()
-    order.action = typeAction
-    order.totalQuantity = quantity
-    order.orderType = orderType
-    order.lmtPrice = lmtPrice
-    order.orderId = app.nextorderId
-    app.nextorderId += 1
-    order.transmit = False
+def set_one_order(app, quantity, delta, contract):
+    price_to_buy = calculate_current_buy_price(app)
+    set_order_profit_taker('BUY', quantity, 'LMT', str(price_to_buy), delta, contract, app)
 
-    takeProfit = Order()
-    takeProfit.orderId = order.orderId + 1
-    takeProfit.action = "SELL" if typeAction == "BUY" else "BUY"
-    takeProfit.orderType = "LMT"
-    takeProfit.totalQuantity = quantity
-    takeProfit.lmtPrice = str(float(lmtPrice) + deltaProfit) if typeAction == "BUY" else str(float(lmtPrice) - deltaProfit) 
-    takeProfit.parentId = order.orderId
-    takeProfit.transmit = True
-    
-    app.placeOrder(order.orderId, finInstr, order)
-    app.placeOrder(takeProfit.orderId, finInstr, takeProfit)
-    
+    return price_to_buy
 
 
-def run_loop():
+def run_loop(app):
 	app.run()
 
-app = IBapi()
-app.connect('127.0.0.1', 7497, 123)
+def main():
 
-app.nextorderId = None
+    app = IBapi()
+    app.connect('127.0.0.1', 7497, 123)
 
-api_thread = threading.Thread(target=run_loop, daemon=True)
-api_thread.start()
+    app.nextorderId = None
 
-while True:
-    if isinstance(app.nextorderId, int):
-        print('connected')
-        break
-    else:
-        print('waiting for connection')
-        time.sleep(1)
+    api_thread = threading.Thread(target=run_loop, daemon=True, args=[app])
+    api_thread.start()
 
-currentContract = FX_order('EURUSD')
-app.reqMktData(1, currentContract, '', False, False, [])
+    while True:
+        if isinstance(app.nextorderId, int):
+            print('connected')
+            break
+        else:
+            print('waiting for connection')
+            time.sleep(1)
 
-while True:
-    if app.current_bid_price is not None:
-        break
+    currentContract = FX_order('EURUSD')
+    app.reqMktData(1, currentContract, '', False, False, [])
 
-price_to_buy = float(app.current_bid_price) * 1000000 / 10
-last_digit = price_to_buy % 10
-if last_digit >= 5:
-    price_to_buy = math.floor(price_to_buy / 10) * 10 + 5
-else:
-    price_to_buy = math.floor(price_to_buy / 10) * 10
-price_to_buy = price_to_buy / 100000
-print(app.current_bid_price)
-print(price_to_buy)
-set_bracket_order('BUY', 20000, 'LMT', str(price_to_buy), 0.0001, currentContract)
+    while True:
+        if app.current_bid_price is not None:
+            break
 
-app.disconnect()
+    quantity = 20000
+    delta = 0.0005
+    taken_space = []
+    price_bought = set_one_order(app, quantity, delta, currentContract)
+    taken_space.append(price_bought)
+    curr_time = time.time()
+
+    while True:
+        
+        if( 300 < time.time() - curr_time):
+            break
+
+        if taken_space[-1] + delta <= calculate_current_buy_price(app):
+            taken_space.pop()
+            if len(taken_space) > 0:
+                price_bought = taken_space[-1]
+
+
+        if len(taken_space) == 0:
+            price_bought = set_one_order(app, quantity, delta, currentContract)
+            taken_space.append(price_bought)
+
+        if calculate_current_buy_price(app) <= (price_bought - delta):
+            price_bought = set_one_order(app, quantity, delta, currentContract)
+            
+            taken_space.append(price_bought)
+        # if app.current_bid_price >= (price_bought + delta):
+        #     price_bought = set_one_order(app, quantity, delta)
+
+
+    app.disconnect()
+
+if __name__ == "__main__":
+    main()
