@@ -1,13 +1,14 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
+from datetime import datetime
 
 class Backtest:
-    def __init__(self, balance, quantity, delta, file):
+    def __init__(self, balance, quantity, delta, df):
         self.balance = balance
         self.quantity = quantity
         self.delta = delta
-        self.data = pd.read_csv(file)
+        self.data = df
         self.current_taken_prices = []
         self.number_of_transaction = 0
 
@@ -52,11 +53,14 @@ class Backtest:
                     self.sell(level + self.delta)
                 else:
                     break
-            
-            if len(self.current_taken_prices) > 0 and float(row['Low']) <= self.current_taken_prices[-1] - self.delta:
-                self.buy(self.current_taken_prices[-1] - self.delta)
-                if float(row['Low']) <= self.current_taken_prices[-1] - 2*self.delta:
-                    self.buy(self.current_taken_prices[-1] - 2*self.delta)
+            correct = 1
+            # if len(self.current_taken_prices) > 15:
+            #     correct = math.ceil(float(len(self.current_taken_prices))/15)
+
+            if len(self.current_taken_prices) > 0 and float(row['Low']) <= self.current_taken_prices[-1] - correct * self.delta:
+                self.buy(self.current_taken_prices[-1] - correct*self.delta)
+                if float(row['Low']) <= self.current_taken_prices[-1] - 2*correct*self.delta:
+                    self.buy(self.current_taken_prices[-1] - 2*correct*self.delta)
 
             last = float(row['High'])
 
@@ -66,9 +70,15 @@ class Backtest:
         print(f'Total: {self.balance + len(self.current_taken_prices) * self.quantity * last}')
 
 def main():
-    bt = Backtest(1000000, 50000, 0.0005, 'DAT_MT_EURUSD_M1_2019.csv')
-    bt.test()
+    
 
+    data2018 = pd.read_csv('DAT_MT_EURUSD_M1_2018.csv')
+    data2019 = pd.read_csv('DAT_MT_EURUSD_M1_2019.csv')
+    frames = [data2018, data2019]
+    data = pd.concat(frames)
+
+    bt = Backtest(1000000, 50000, 0.0005, data)
+    bt.test()
 
 if __name__ == "__main__":
     main()
