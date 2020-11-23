@@ -16,7 +16,7 @@ class IBapi(EWrapper, EClient):
             self.current_bid_price = price
             # print('The current bid price is: ', price)
     
-    def nextValidId(self, orderId: int):
+    def nextValidId(self, orderId):
         super().nextValidId(orderId)
         self.nextorderId = orderId
         # print('The next valid order id is: ', self.nextorderId)
