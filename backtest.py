@@ -1,10 +1,12 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import math
+import math, json
 from IPython.display import display, HTML
 import plotly.graph_objects as go
 from datetime import datetime
 
+f = open('data.json', "w+")
+f.write('[\n')
 
 class Backtest:
     def __init__(self, balance, quantity, delta, df):
@@ -144,10 +146,11 @@ class Backtest:
         self.table_array['Ukupan broj dobijenih'].append(-1)
         self.table_array['Ukupan broj izgubljenih'].append(-1)
         self.table_array['Odnos'].append(-1)
+        f.write(json.dumps(self.table_array))
+        f.write(',\n')
         
-            
-        # plt.plot(self.portfolio_history)
-        # plt.show()
+        plt.plot(self.portfolio_history)
+        plt.show()
 
     def test_reverse(self):
         last = 0
@@ -182,7 +185,7 @@ class Backtest:
         print(self.data.head())
         print(f'Balance: {self.portfolio_value}, Number of transactions: {self.number_of_transaction}, length of bought prices: {len(self.current_taken_prices)}')
         close_num = (self.number_of_transaction - len(self.current_taken_prices)) / 2
-        portfolio_val = self.balance + len(self.current_taken_prices) * self.quantity * last
+        portfolio_val = self.balance - len(self.current_taken_prices) * self.quantity * last
         self.portfolio_history.append(portfolio_val)
 
         self.table_array['tip testa'].append('profit taker uz trend')
@@ -197,7 +200,12 @@ class Backtest:
         self.table_array['Ukupan broj dobijenih'].append(-1)
         self.table_array['Ukupan broj izgubljenih'].append(-1)
         self.table_array['Odnos'].append(-1)
-
+        f.write(json.dumps(self.table_array))
+        f.write(',\n')
+        
+        plt.plot(self.portfolio_history)
+        plt.show()
+        
     def test_stop_loss_reverse(self, ratio):
         last = 0
         number_of_wins = 0
@@ -238,10 +246,10 @@ class Backtest:
         print(f'Balance: {self.portfolio_value}, Number of transactions: {self.number_of_transaction}, length of bought prices: {len(self.current_taken_prices)}')
         print(f'Wins: {number_of_wins}, Losses: {number_of_losses}')
         close_num = (self.number_of_transaction - len(self.current_taken_prices)) / 2
-        portfolio_val = self.balance + len(self.current_taken_prices) * self.quantity * last
+        portfolio_val = self.balance - len(self.current_taken_prices) * self.quantity * last
         self.portfolio_history.append(portfolio_val)
         
-        self.table_array['tip testa'].append('profit taker uz trend')
+        self.table_array['tip testa'].append('stop loss')
         self.table_array['Delta'].append(self.delta)
         self.table_array['pocetni balans'].append(1000000)
         self.table_array['Broj kupljenih po transakciji'].append( self.quantity)
@@ -253,7 +261,11 @@ class Backtest:
         self.table_array['Ukupan broj dobijenih'].append(number_of_wins)
         self.table_array['Ukupan broj izgubljenih'].append(number_of_losses)
         self.table_array['Odnos'].append(ratio)
-
+        f.write(json.dumps(self.table_array))
+        f.write('\n]')
+        
+        plt.plot(self.portfolio_history)
+        plt.show()
             
         # plt.plot(self.portfolio_history)
         # plt.show()
@@ -268,52 +280,52 @@ def main():
 
 
 
-    # bt1 = Backtest(1000000, 20000, 0.001, data)
-    # bt1.test()
-    # ta1 = bt1.table_array
+    bt1 = Backtest(1000000, 20000, 0.0005, data2019)
+    bt1.test()
+    ta1 = bt1.table_array
 
-    # bt2 = Backtest(1000000, 20000, 0.001, data)
-    # bt2.test_reverse()
-    # ta2 = bt2.table_array
+    bt2 = Backtest(1000000, 20000, 0.0005, data2019)
+    bt2.test_reverse()
+    ta2 = bt2.table_array
 
-    # bt3 = Backtest(1000000, 20000, 0.001, data)
-    # bt3.test_stop_loss_reverse(3)
-    # t3 = bt3.table_array
+    bt3 = Backtest(1000000, 20000, 0.0005, data2019)
+    bt3.test_stop_loss_reverse(3)
+    t3 = bt3.table_array
 
-    # bt4 = Backtest(1000000, 20000, 0.001, data)
-    # bt4.test_stop_loss_reverse(2)
-    # ta4 = bt4.table_array
+    bt4 = Backtest(1000000, 20000, 0.0005, data2019)
+    bt4.test_stop_loss_reverse(2)
+    ta4 = bt4.table_array
     
-    ta = {
-            'tip testa': [1, 2, 4],
-            'Delta': [1, 2, 4], 
-            'pocetni balans': [1, 2, 4], 
-            'Broj kupljenih po transakciji': [1, 2, 4],
-            'Ukupan broj otvorenih': [1, 2, 4],
-            'Ukupan broj zatvorenih': [1, 2, 4],
-            'Broj nezatvorenih pozicija': [1, 2, 4],
-            'Konacna vrednot portfolija': [1, 2, 4],
-            'Dobit u procentima': [1, 2, 4],
-            'Ukupan broj dobijenih': [1, 2, 4],
-            'Ukupan broj izgubljenih': [1, 2, 4],
-            'Odnos': [1, 2, 4],
-            }
+    # ta = {
+    #         'tip testa': [1, 2, 4],
+    #         'Delta': [1, 2, 4], 
+    #         'pocetni balans': [1, 2, 4], 
+    #         'Broj kupljenih po transakciji': [1, 2, 4],
+    #         'Ukupan broj otvorenih': [1, 2, 4],
+    #         'Ukupan broj zatvorenih': [1, 2, 4],
+    #         'Broj nezatvorenih pozicija': [1, 2, 4],
+    #         'Konacna vrednot portfolija': [1, 2, 4],
+    #         'Dobit u procentima': [1, 2, 4],
+    #         'Ukupan broj dobijenih': [1, 2, 4],
+    #         'Ukupan broj izgubljenih': [1, 2, 4],
+    #         'Odnos': [1, 2, 4],
+    #         }
     # for k in ta1.keys():
     #     ta[k] = ta1[k] + ta2[k] + ta3[k] + ta4[k]
 
-    df = pd.DataFrame(ta)
-    vals = [df[key] for key in list(ta.keys())]
-    print(vals)
-    fig = go.Figure(data=[go.Table(
-        header=dict(values=list(df.columns),
-                    fill_color='paleturquoise',
-                    align='left'),
-        cells=dict(values=vals,
-                fill_color='lavender',
-                align='left'))
-    ])
+    # df = pd.DataFrame(ta)
+    # vals = [df[key] for key in list(ta.keys())]
+    # print(vals)
+    # fig = go.Figure(data=[go.Table(
+    #     header=dict(values=list(df.columns),
+    #                 fill_color='paleturquoise',
+    #                 align='left'),
+    #     cells=dict(values=vals,
+    #             fill_color='lavender',
+    #             align='left'))
+    # ])
 
-    fig.show()
+    # fig.show()
 
     # display(df_table)
     # display(HTML(df_table.to_html()))
