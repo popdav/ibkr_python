@@ -46,6 +46,7 @@ def main():
 
     currentContract = FX_order('EURUSD')
     app.reqMktData(1, currentContract, '', False, False, [])
+    app.reqAccountSummary(9002, "All", "$LEDGER")
 
     while True:
         if app.current_bid_price is not None:
@@ -60,9 +61,6 @@ def main():
 
     while True:
         
-        if( 300 < time.time() - curr_time):
-            break
-
         if taken_space[-1] + delta <= calculate_current_buy_price(app):
             taken_space.pop()
             if len(taken_space) > 0:
@@ -77,8 +75,6 @@ def main():
             price_bought = set_one_order(app, quantity, delta, currentContract)
             
             taken_space.append(price_bought)
-        # if app.current_bid_price >= (price_bought + delta):
-        #     price_bought = set_one_order(app, quantity, delta)
 
 
     app.disconnect()
