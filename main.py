@@ -5,22 +5,60 @@ import threading
 from IBapi import IBapi
 from order_service import *
 
-def calculate_current_buy_price(app):
-    price_to_buy = float(app.current_bid_price) * 1000000 / 10
-    last_digit = price_to_buy % 10
-    if last_digit >= 5:
-        price_to_buy = math.ceil(price_to_buy / 10) * 10 
-    else:
-        price_to_buy = math.floor(price_to_buy / 10) * 10 + 5
-    price_to_buy = price_to_buy / 100000
+# def calculate_current_buy_price(app):
+#     price_to_buy = float(app.current_bid_price) * 1000000 / 10
+#     last_digit = price_to_buy % 10
+#     if last_digit >= 5:
+#         price_to_buy = math.ceil(price_to_buy / 10) * 10 
+#     else:
+#         price_to_buy = math.floor(price_to_buy / 10) * 10 + 5
+#     price_to_buy = price_to_buy / 100000
 
-    return price_to_buy
+#     return price_to_buy
 
-def set_one_order(app, quantity, delta, contract):
+def set_one_order(app, quantity, delta, contract, orderType):
     price_to_buy = calculate_current_buy_price(app)
-    set_order_profit_taker('BUY', quantity, 'LMT', str(price_to_buy), delta, contract, app)
+    print(price_to_buy)
+    if orderType == 'profit_taker':
+        set_order_profit_taker('BUY', quantity, 'LMT', str(price_to_buy), delta, contract, app)
+    if orderType == 'stop_loss':
+        set_bracket_order('BUY', quantity, 'LMT', str(price_to_buy), delta, contract, app)
 
     return price_to_buy
+
+def profit_taker_loop(app, taken_space, delta, price_bought, quantity):
+
+    if taken_space[-1] + delta <= calculate_current_buy_price(app):
+        taken_space.pop()
+        if len(taken_space) > 0:
+            price_bought = taken_space[-1]
+
+
+    if len(taken_space) == 0:
+        price_bought = set_one_order(app, quantity, delta, currentContract, 'profit_taker')
+        taken_space.append(price_bought)
+
+    if calculate_current_buy_price(app) <= (price_bought - delta):
+        price_bought = set_one_order(app, quantity, delta, currentContract, 'profit_taker')
+        
+        taken_space.append(price_bought)
+
+def stop_loss_loop(app, taken_space, delta, price_bought, quantity, ratio):
+
+    if taken_space[-1] + delta <= calculate_current_buy_price(app) or taken_space[-1] - delta/ratio > calculate_current_buy_price(app):
+        taken_space.pop()
+        if len(taken_space) > 0:
+            price_bought = taken_space[-1]
+
+
+    if len(taken_space) == 0:
+        price_bought = set_one_order(app, quantity, delta, currentContract, 'stop_loss')
+        taken_space.append(price_bought)
+
+    if calculate_current_buy_price(app) <= (price_bought - delta) or calculate_current_buy_price(app) > price_bought + delta/ratio:
+        price_bought = set_one_order(app, quantity, delta, currentContract, 'stop_loss')
+        
+        taken_space.append(price_bought)
 
 
 def run_loop(app):
@@ -55,26 +93,13 @@ def main():
     quantity = 20000
     delta = 0.0005
     taken_space = []
-    price_bought = set_one_order(app, quantity, delta, currentContract)
+    price_bought = set_one_order(app, quantity, delta, currentContract, 'profit_taker')
     taken_space.append(price_bought)
     curr_time = time.time()
 
     while True:
+        profit_taker_loop(app, taken_space, delta, price_bought, quantity)
         
-        if taken_space[-1] + delta <= calculate_current_buy_price(app):
-            taken_space.pop()
-            if len(taken_space) > 0:
-                price_bought = taken_space[-1]
-
-
-        if len(taken_space) == 0:
-            price_bought = set_one_order(app, quantity, delta, currentContract)
-            taken_space.append(price_bought)
-
-        if calculate_current_buy_price(app) <= (price_bought - delta):
-            price_bought = set_one_order(app, quantity, delta, currentContract)
-            
-            taken_space.append(price_bought)
 
 
     app.disconnect()

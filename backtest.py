@@ -280,21 +280,21 @@ def main():
 
 
 
-    bt1 = Backtest(1000000, 20000, 0.0005, data2019)
-    bt1.test()
-    ta1 = bt1.table_array
+    # bt1 = Backtest(1000000, 20000, 0.0005, data2019)
+    # bt1.test()
+    # ta1 = bt1.table_array
 
-    bt2 = Backtest(1000000, 20000, 0.0005, data2019)
-    bt2.test_reverse()
-    ta2 = bt2.table_array
+    # bt2 = Backtest(1000000, 20000, 0.0005, data2019)
+    # bt2.test_reverse()
+    # ta2 = bt2.table_array
 
-    bt3 = Backtest(1000000, 20000, 0.0005, data2019)
+    bt3 = Backtest(1000000, 200000, 0.0005, data2018)
     bt3.test_stop_loss_reverse(3)
     t3 = bt3.table_array
 
-    bt4 = Backtest(1000000, 20000, 0.0005, data2019)
-    bt4.test_stop_loss_reverse(2)
-    ta4 = bt4.table_array
+    # bt4 = Backtest(1000000, 20000, 0.0005, data2019)
+    # bt4.test_stop_loss_reverse(2)
+    # ta4 = bt4.table_array
     
     # ta = {
     #         'tip testa': [1, 2, 4],
