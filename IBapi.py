@@ -12,7 +12,7 @@ class IBapi(EWrapper, EClient):
         self.current_bid_price = None
         self.current_ask_price = None
         self.order_number = 0
-        filename = 'cash_balance_' + str(datetime.now()) + '.csv'
+        filename = 'cash_balance_sl_' + str(datetime.now()) + '.csv'
         self.file = open(filename, 'w')
         self.file.write('id,account,value,currecny,tag,time\n')
         self.file.flush()

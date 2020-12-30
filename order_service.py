@@ -3,7 +3,7 @@ from ibapi.order import *
 import math
 from datetime import datetime
 
-filename = 'trading_logg_' + str(datetime.now()) + '.csv'
+filename = 'trading_logg_sl_' + str(datetime.now()) + '.csv'
 loggfile = open(filename, 'w')
 loggfile.write(f'typeAction,quantity,lmtPrice,delta,ratio,time\n')
 loggfile.flush()

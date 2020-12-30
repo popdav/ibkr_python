@@ -16,13 +16,13 @@ from order_service import *
 
 #     return price_to_buy
 
-def set_one_order(app, quantity, delta, contract, orderType):
+def set_one_order(app, quantity, delta, contract, orderType, ratio=None):
     price_to_buy = calculate_current_buy_price(app)
     print(price_to_buy)
     if orderType == 'profit_taker':
         set_order_profit_taker('BUY', quantity, 'LMT', str(price_to_buy), delta, contract, app)
     if orderType == 'stop_loss':
-        set_bracket_order('BUY', quantity, 'LMT', str(price_to_buy), delta, contract, app)
+        set_bracket_order('BUY', quantity, 'LMT', str(price_to_buy), delta, contract, app, ratio)
 
     return price_to_buy
 
@@ -52,11 +52,11 @@ def stop_loss_loop(app, taken_space, delta, price_bought, quantity, ratio):
 
 
     if len(taken_space) == 0:
-        price_bought = set_one_order(app, quantity, delta, currentContract, 'stop_loss')
+        price_bought = set_one_order(app, quantity, delta, currentContract, 'stop_loss', ratio)
         taken_space.append(price_bought)
 
     if calculate_current_buy_price(app) <= (price_bought - delta) or calculate_current_buy_price(app) > price_bought + delta/ratio:
-        price_bought = set_one_order(app, quantity, delta, currentContract, 'stop_loss')
+        price_bought = set_one_order(app, quantity, delta, currentContract, 'stop_loss', ratio)
         
         taken_space.append(price_bought)
 
@@ -92,13 +92,14 @@ def main():
 
     quantity = 20000
     delta = 0.0005
+    ratio = 2
     taken_space = []
-    price_bought = set_one_order(app, quantity, delta, currentContract, 'profit_taker')
+    price_bought = set_one_order(app, quantity, delta, currentContract, 'stop_loss', ratio)
     taken_space.append(price_bought)
     curr_time = time.time()
 
     while True:
-        profit_taker_loop(app, taken_space, delta, price_bought, quantity)
+        stop_loss_loop(app, taken_space, delta, price_bought, quantity, ratio)
         
 
 
